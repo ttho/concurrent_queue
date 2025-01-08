@@ -19,7 +19,7 @@ class QueueEvent {
   });
 
   QueueEventAction action;
-  dynamic? result;
+  dynamic result;
 }
 
 enum QueueEventAction {
@@ -242,10 +242,26 @@ class ConcurrentQueue {
     return Future.wait(waitFor);
   }
 
+  Future<T> addFirst<T>(
+      Task<T> task, {
+      dynamic key,
+    }) async {
+    return _add(task, first: true, key: key);
+  }
+
   Future<T> add<T>(
+      Task<T> task, {
+        int priority = 0,
+        dynamic key,
+      }) async {
+    return _add(task, priority: priority, key: key);
+  }
+
+  Future<T> _add<T>(
     Task<T> task, {
       int priority = 0,
-      dynamic? key,
+      bool first = false,
+      dynamic key,
     }) async {
 
     final c = Completer<T>();
@@ -279,7 +295,11 @@ class ConcurrentQueue {
     };
 
     try {
-      _queue.enqueue(job, priority: priority, key: key);
+      if (first) {
+        _queue.enqueueFirst(job, key: key);
+      } else {
+        _queue.enqueue(job, priority: priority, key: key);
+      }
       emit(QueueEventAction.add);
     } catch (error) {
       emit(QueueEventAction.error, error);

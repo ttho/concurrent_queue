@@ -9,7 +9,7 @@ class _PriorityQueueOptions
 
   RunFunction? run;
 
-  dynamic? key;
+  dynamic key;
 }
 
 class PriorityQueue implements IQueue<RunFunction?, _PriorityQueueOptions>{
@@ -22,7 +22,22 @@ class PriorityQueue implements IQueue<RunFunction?, _PriorityQueueOptions>{
   final _map = <dynamic, _PriorityQueueOptions>{};
 
   @override
-  void enqueue(run, { int priority = 0, dynamic? key }) {
+  int enqueueFirst(RunFunction? run, {key}) {
+    if (size == 0) {
+      enqueue(run, key: key);
+      return 0;
+    }
+    _PriorityQueueOptions element = _PriorityQueueOptions(
+      _queue.first.priority,
+      run: run,
+      key: key,
+    );
+    _enqueueInternal(element, 0);
+    return element.priority;
+  }
+
+  @override
+  void enqueue(run, { int priority = 0, dynamic key }) {
 
     _PriorityQueueOptions element = _PriorityQueueOptions(
       priority,
@@ -30,29 +45,38 @@ class PriorityQueue implements IQueue<RunFunction?, _PriorityQueueOptions>{
       key: key,
     );
 
-    if (key != null) {
-      if (_map[key] != null) {
-        throw Exception('keyed entry allready exists');
-      }
-      _map[key] = element;
-    }
-
+    var index;
     if (size > 0 && _queue[size - 1].priority >= priority) {
-      _queue.add(element);
-      return;
+      index = size;
     }
 
-    int index = lowerBound<_PriorityQueueOptions>(
+    index = lowerBound<_PriorityQueueOptions>(
       _queue,
       element,
       (a, b) => b.priority - a.priority);
 
+    _enqueueInternal(element, index);
+  }
+
+  void _enqueueInternal(_PriorityQueueOptions element, int index) {
+    var key = element.key;
+    if (key != null) {
+      if (_map[key] != null) {
+        throw Exception('keyed entry already exists');
+      }
+      _map[key] = element;
+    }
+
+    if (index == size) {
+      _queue.add(element);
+      return;
+    }
     _queue.insert(index, element);
   }
 
 
   @override
-  RunFunction? dequeue({ dynamic? key }) {
+  RunFunction? dequeue({ dynamic key }) {
     _PriorityQueueOptions? item;
 
     if (key != null) {

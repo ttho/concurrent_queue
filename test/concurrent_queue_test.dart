@@ -127,6 +127,24 @@ void main() {
     expect(result, equals([1, 3, 1, 2, 0, 0]));
   });
 
+  test('.addFirst()', () async {
+    List<int> result = <int>[];
+
+    var queue = new ConcurrentQueue(concurrency: 1);
+
+    queue.add(() async => result.add(1), priority: 1);
+    queue.addFirst(() async => result.add(10)); // first, but previous task is already executed, and queue is empty at that time -> added with priority 0
+    queue.add(() async => result.add(0), priority: 0);
+    queue.add(() async => result.add(1), priority: 1);
+    queue.add(() async => result.add(2), priority: 1);
+    queue.add(() async => result.add(3), priority: 2);
+    queue.add(() async => result.add(0), priority: -1);
+    queue.addFirst(() async => result.add(20)); // second to be executed, as first task was executed immediately after creation
+    await queue.onEmpty();
+
+    expect(result, equals([1, 20, 3, 1, 2, 10, 0, 0]));
+  });
+
   test('.onEmpty()', () async{
 
     var queue = new ConcurrentQueue(concurrency: 1);
