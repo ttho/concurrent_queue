@@ -107,4 +107,6 @@ class PriorityQueue implements IQueue<RunFunction?, _PriorityQueueOptions>{
     return this._queue.where((element) => element.priority == priority).map((e) => e.run) as List<Future<dynamic> Function()?>;
   }
 
+  Iterable get keys => _map.keys;
+
 }

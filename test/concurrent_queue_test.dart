@@ -22,6 +22,7 @@ void main() {
     expect(queue.size, equals(0));
     expect(queue.pending, equals(1));
     expect(future, completion(equals(123)));
+    expect(queue.pendingKeys.isEmpty, isTrue);
   });
 
   test('.add() - limited concurrency',() async {
@@ -208,13 +209,16 @@ void main() {
     queue.add(() async => delay(20000));
     queue.add(() async => delay(20000));
     queue.add(() async => delay(20000));
-    queue.add(() async => delay(20000));
-    queue.add(() async => delay(20000));
+    queue.add(() async => delay(20000), key: "1");
+    queue.add(() async => delay(20000), key: "2");
 
     expect(queue.size, equals(4));
     expect(queue.pending, equals(2));
+    expect(queue.pendingKeys.isEmpty, isTrue);
+    expect(queue.queuedKeys, equals({"2", "1"}));
     queue.clear();
     expect(queue.size, equals(0));
+    expect(queue.queuedKeys.isEmpty, isTrue);
   });
 
   test('.addAll()', () async {
@@ -868,11 +872,15 @@ test('should emit completed / error events', () async {
 
     expect(queue.size, equals(3));
     expect(queue.pending, equals(0));
+    expect(queue.pendingKeys.length, equals(0));
+    expect(queue.queuedKeys, equals({"deleteMe"}));
 
     queue.remove('deleteMe');
 
     expect(queue.size, equals(2));
     expect(queue.pending, equals(0));
+    expect(queue.pendingKeys.length, equals(0));
+    expect(queue.queuedKeys.length, equals(0));
   });
 
 
@@ -890,12 +898,16 @@ test('should emit completed / error events', () async {
 
     expect(queue.size, equals(2));
     expect(queue.pending, equals(1));
+    expect(queue.pendingKeys.length, equals(0));
+    expect(queue.queuedKeys, equals({"deleteMe"}));
 
     final item = queue.remove('deleteMe');
 
     expect(item, isA<RunFunction>());
     expect(queue.size, equals(1));
     expect(queue.pending, equals(1));
+    expect(queue.pendingKeys.length, equals(0));
+    expect(queue.queuedKeys.length, equals(0));
   });
 
   test('.remove() unprocessed key', () async {
@@ -929,6 +941,7 @@ test('should emit completed / error events', () async {
 
     expect(queue.size, equals(3));
     expect(queue.pending, equals(0));
+    expect(queue.queuedKeys, equals({"delete1", "delete2"}));
 
     final item = queue.remove('delete1');
     final item2 = queue.remove('delete2');
@@ -937,10 +950,11 @@ test('should emit completed / error events', () async {
     expect(item2, isA<RunFunction>());
     expect(queue.size, equals(1));
     expect(queue.pending, equals(0));
+    expect(queue.queuedKeys, equals([]));
     expect(removedEvents, 2);
   });
 
-  test('.add() should throw exception when key is allready in use', () async {
+  test('.add() should throw exception when key is already in use', () async {
     var queue = new ConcurrentQueue( concurrency: 1, autoStart: false );
 
     queue.add<int>(() async => 123);

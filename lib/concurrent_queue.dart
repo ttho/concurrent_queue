@@ -52,7 +52,8 @@ class ConcurrentQueue {
     _queue = PriorityQueue(),
     _concurrency = concurrency,
     _isPaused = autoStart == false,
-    _eventStream = PublishSubject<QueueEvent>( sync: true );
+    _eventStream = PublishSubject<QueueEvent>( sync: true ),
+    _pendingKeys = {};
 
   final bool _carryoverConcurrencyCount;
 
@@ -75,6 +76,8 @@ class ConcurrentQueue {
   Timer? _timeoutId;
 
   late PriorityQueue _queue;
+
+  final Set<dynamic> _pendingKeys;
 
   int _pendingCount = 0;
 
@@ -266,6 +269,9 @@ class ConcurrentQueue {
 
     final c = Completer<T>();
     final job = () async {
+      if (key != null) {
+        _pendingKeys.add(key);
+      }
       _pendingCount += 1;
       _intervalCount += 1;
 
@@ -290,6 +296,9 @@ class ConcurrentQueue {
       } catch (error) {
         emit(QueueEventAction.error, error);
         c.completeError(error);
+      }
+      if (key != null) {
+        _pendingKeys.remove(key);
       }
       _next();
     };
@@ -385,4 +394,7 @@ class ConcurrentQueue {
     return _isPaused;
   }
 
+  Iterable<dynamic> get queuedOrPendingKeys => _queue.keys.followedBy(_pendingKeys);
+  Iterable<dynamic> get pendingKeys => _pendingKeys;
+  Iterable<dynamic> get queuedKeys => _queue.keys;
 }
