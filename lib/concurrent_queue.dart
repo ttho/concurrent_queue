@@ -167,7 +167,7 @@ class ConcurrentQueue {
     }
     if (!_isPaused) {
 
-      bool canInitializeInterval = !_isIntervalPaused();
+      bool canInitializeInterval = !_isIntervalIgnored && !_isIntervalPaused();
       if (_doesIntervalAllowAnother && _doesConcurrentAllowAnother) {
         final job = _queue.dequeue();
 
