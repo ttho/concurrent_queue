@@ -13,6 +13,13 @@ typedef void ResolveFunction<T>();
 
 void _empty() {}
 
+class FutureAndPriority<T> {
+  final Future<T> future;
+  final int priority;
+
+  FutureAndPriority(this.future, this.priority);
+}
+
 class QueueEvent {
   QueueEvent(this.action, {
     this.result,
@@ -245,10 +252,10 @@ class ConcurrentQueue {
     return Future.wait(waitFor);
   }
 
-  Future<T> addFirst<T>(
+  FutureAndPriority<T> addFirst<T>(
       Task<T> task, {
       dynamic key,
-    }) async {
+    }) {
     return _add(task, first: true, key: key);
   }
 
@@ -257,15 +264,15 @@ class ConcurrentQueue {
         int priority = 0,
         dynamic key,
       }) async {
-    return _add(task, priority: priority, key: key);
+    return _add(task, priority: priority, key: key).future;
   }
 
-  Future<T> _add<T>(
+  FutureAndPriority<T> _add<T>(
     Task<T> task, {
       int priority = 0,
       bool first = false,
       dynamic key,
-    }) async {
+    }) {
 
     final c = Completer<T>();
     final job = () async {
@@ -303,9 +310,10 @@ class ConcurrentQueue {
       _next();
     };
 
+    int returnedPriority = priority;
     try {
       if (first) {
-        _queue.enqueueFirst(job, key: key);
+        returnedPriority = _queue.enqueueFirst(job, key: key);
       } else {
         _queue.enqueue(job, priority: priority, key: key);
       }
@@ -317,7 +325,7 @@ class ConcurrentQueue {
 
     _tryToStartAnother();
 
-    return c.future;
+    return FutureAndPriority(c.future, returnedPriority);
   }
 
   RunFunction? remove(
